@@ -26,7 +26,7 @@ class RedisSettings(BaseSettings):
 
 class ElasticSearchSettings(BaseSettings):
     host: str
-    port: str
+    port: int
 
     class Config:
         env_file = ".env"
