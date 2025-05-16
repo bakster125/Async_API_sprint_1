@@ -1,5 +1,7 @@
+from contextlib import asynccontextmanager
+
 import aioredis
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import ORJSONResponse
 
 from src.api.v1 import films
@@ -9,16 +11,9 @@ from src.db import async_search_engine
 from src.db.async_cache_storage import RedisCacheStorage
 from src.db.async_search_engine import AsyncElasticSearchEngine
 
-app = FastAPI(
-    title=config.PROJECT_NAME,
-    docs_url='/api/openapi',
-    openapi_url='/api/openapi.json',
-    default_response_class=ORJSONResponse,
-)
 
-
-@app.on_event('startup')
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     redis_dsn = config.RedisSettings().dict()
     redis_conn = await aioredis.create_redis_pool(
         address=(
@@ -39,13 +34,20 @@ async def startup():
     )
     async_search_engine.async_search_engine = elastic_engine
 
+    yield
 
-@app.on_event('shutdown')
-async def shutdown():
     async_cache_storage.async_cache.close()
     await async_cache_storage.async_cache.wait_closed()
     await async_search_engine.async_search_engine.close()
 
+
+app = FastAPI(
+    title=config.PROJECT_NAME,
+    docs_url='/api/openapi',
+    openapi_url='/api/openapi.json',
+    lifespan=lifespan,
+    default_response_class=ORJSONResponse,
+)
 
 app.include_router(
     films.router,
