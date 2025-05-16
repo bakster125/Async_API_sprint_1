@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Query
 
 
@@ -29,7 +31,24 @@ def get_result(resp, page_size, page_number, model):
 
 
 async def pagination(
-        page_size: int = Query(ge=1, le=100, default=10, alias='page[size]'),
-        page_number: int = Query(default=1, ge=0, alias='page[number]'),
+        page_size: Annotated[
+            int,
+            Query(
+                ge=1,
+                le=100,
+                default=10,
+                alias='page[size]',
+                description="The number of items to return per page. Must be between 1 and 100."
+            )
+        ],
+        page_number: Annotated[
+            int,
+            Query(
+                default=1,
+                ge=1,
+                alias='page[number]',
+                description="The page number to return. Must be a positive integer."
+            )
+        ],
 ):
     return {'page_size': page_size, 'page_number': page_number}
